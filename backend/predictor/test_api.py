@@ -1,0 +1,138 @@
+from io import BytesIO
+from unittest.mock import patch
+
+from django.test import TestCase
+from PIL import Image
+from rest_framework.test import APIClient
+
+
+def create_test_image():
+    """
+    Create a small valid JPEG image entirely in memory.
+    """
+    image = Image.new(
+        "RGB",
+        (200, 150),
+        color=(120, 120, 120),
+    )
+
+    buffer = BytesIO()
+
+    image.save(
+        buffer,
+        format="JPEG",
+    )
+
+    buffer.seek(0)
+
+    return buffer
+
+
+class PredictAPITest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_predict_without_image_returns_400(self):
+        response = self.client.post(
+            "/api/predict/",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            400,
+        )
+
+        self.assertIn(
+            "error",
+            response.data,
+        )
+
+    @patch(
+        "predictor.views.model_manager.predict"
+    )
+    def test_predict_with_valid_image(self, mock_predict):
+        mock_predict.return_value = [
+            {
+                "breed": "golden_retriever",
+                "confidence": 0.91,
+            },
+            {
+                "breed": "labrador_retriever",
+                "confidence": 0.04,
+            },
+            {
+                "breed": "german_shepherd",
+                "confidence": 0.02,
+            },
+            {
+                "breed": "golden_retriever",
+                "confidence": 0.02,
+            },
+            {
+                "breed": "beagle",
+                "confidence": 0.01,
+            },
+        ]
+
+        image = create_test_image()
+
+        response = self.client.post(
+            "/api/predict/",
+            {
+                "image": image,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertIn(
+            "predictions",
+            response.data,
+        )
+
+        self.assertIn(
+            "top_prediction",
+            response.data,
+        )
+
+        self.assertIn(
+            "model_version",
+            response.data,
+        )
+
+        self.assertEqual(
+            len(response.data["predictions"]),
+            5,
+        )
+
+        self.assertEqual(
+            response.data["top_prediction"]["breed"],
+            "golden_retriever",
+        )
+
+        mock_predict.assert_called_once()
+
+    def test_predict_rejects_non_image(self):
+        text_file = BytesIO(
+            b"This is not an image."
+        )
+
+        text_file.name = "test.txt"
+
+        response = self.client.post(
+            "/api/predict/",
+            {
+                "image": text_file,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            400,
+        )
