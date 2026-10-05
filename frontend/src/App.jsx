@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import axios from "axios";
+
 import {
   Upload,
   Image as ImageIcon,
@@ -13,6 +15,7 @@ import {
   Clock3,
   Database,
 } from "lucide-react";
+
 import "./App.css";
 
 function formatBreedName(breed) {
@@ -46,18 +49,22 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [result, setResult] = useState(null);
+
   const [analytics, setAnalytics] = useState(null);
+
   const [analyticsLoading, setAnalyticsLoading] =
     useState(true);
+
   const [analyticsError, setAnalyticsError] =
     useState("");
+
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const fileInputRef = useRef(null);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       setAnalyticsLoading(true);
       setAnalyticsError("");
@@ -76,11 +83,15 @@ function App() {
     } finally {
       setAnalyticsLoading(false);
     }
-  };
+  }, []);
 
+  // The effect intentionally synchronizes React state
+  // with the external Django analytics API.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  // oxlint-disable-next-line react(set-state-in-effect)
   useEffect(() => {
     loadAnalytics();
-  }, []);
+  }, [loadAnalytics]);
 
   const handleFile = (file) => {
     if (!file) {
@@ -537,7 +548,9 @@ function App() {
               <div className="analytics-breeds">
                 <div className="section-heading">
                   <h3>Most Predicted Breeds</h3>
-                  <span>Recorded predictions</span>
+                  <span>
+                    Recorded predictions
+                  </span>
                 </div>
 
                 {analytics.top_breeds?.length ? (
