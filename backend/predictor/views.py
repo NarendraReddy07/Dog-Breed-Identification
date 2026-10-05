@@ -1,9 +1,10 @@
+import logging
 import time
 from io import BytesIO
 
 import tensorflow as tf
 from django.db.models import Avg, Count
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,11 +13,14 @@ from .model_manager import model_manager
 from .models import PredictionLog
 
 
+logger = logging.getLogger(__name__)
+
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
     "image/png",
     "image/webp",
 }
+
 
 class PredictView(APIView):
     """
@@ -53,8 +57,6 @@ class PredictView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        start_time = time.perf_counter()
 
         start_time = time.perf_counter()
 
@@ -125,12 +127,34 @@ class PredictView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        except Exception as exc:
+        except (UnidentifiedImageError, OSError):
+            logger.warning(
+                "Invalid image upload: %s",
+                uploaded_file.name,
+                exc_info=True,
+            )
+
             return Response(
                 {
-                    "error": str(exc)
+                    "error": "The uploaded file is not a valid image."
                 },
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except Exception:
+            logger.exception(
+                "Prediction failed for uploaded file: %s",
+                uploaded_file.name,
+            )
+
+            return Response(
+                {
+                    "error": (
+                        "Prediction failed due to an internal "
+                        "server error."
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -164,6 +188,7 @@ class PredictionHistoryView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
 
 class PredictionAnalyticsView(APIView):
     """
