@@ -1,6 +1,7 @@
 from io import BytesIO
 from unittest.mock import patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from PIL import Image
 from rest_framework.test import APIClient
@@ -10,7 +11,7 @@ from predictor.models import PredictionLog
 
 def create_test_image():
     """
-    Create a small valid JPEG image entirely in memory.
+    Create a small valid JPEG upload entirely in memory.
     """
     image = Image.new(
         "RGB",
@@ -25,9 +26,11 @@ def create_test_image():
         format="JPEG",
     )
 
-    buffer.seek(0)
-
-    return buffer
+    return SimpleUploadedFile(
+        "test.jpg",
+        buffer.getvalue(),
+        content_type="image/jpeg",
+    )
 
 
 class PredictAPITest(TestCase):
@@ -120,11 +123,11 @@ class PredictAPITest(TestCase):
         mock_predict.assert_called_once()
 
     def test_predict_rejects_non_image(self):
-        text_file = BytesIO(
-            b"This is not an image."
+        text_file = SimpleUploadedFile(
+            "test.txt",
+            b"This is not an image.",
+            content_type="text/plain",
         )
-
-        text_file.name = "test.txt"
 
         response = self.client.post(
             "/api/predict/",
@@ -137,6 +140,36 @@ class PredictAPITest(TestCase):
         self.assertEqual(
             response.status_code,
             400,
+        )
+
+        self.assertEqual(
+            response.data["error"],
+            "Unsupported image type. Use JPEG, PNG, or WEBP.",
+        )
+
+    def test_predict_rejects_large_file(self):
+        large_file = SimpleUploadedFile(
+            "large.jpg",
+            b"x" * (10 * 1024 * 1024 + 1),
+            content_type="image/jpeg",
+        )
+    
+        response = self.client.post(
+            "/api/predict/",
+            {
+                "image": large_file,
+            },
+            format="multipart",
+        )
+    
+        self.assertEqual(
+            response.status_code,
+            400,
+        )
+    
+        self.assertEqual(
+            response.data["error"],
+            "Image file is too large. Maximum size is 10 MB.",
         )
 
     def test_prediction_history_returns_saved_predictions(self):

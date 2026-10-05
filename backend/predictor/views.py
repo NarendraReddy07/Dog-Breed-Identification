@@ -12,6 +12,12 @@ from .model_manager import model_manager
 from .models import PredictionLog
 
 
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+
 class PredictView(APIView):
     """
     Predict the breed of an uploaded dog image
@@ -28,6 +34,27 @@ class PredictView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if uploaded_file.content_type not in ALLOWED_IMAGE_TYPES:
+            return Response(
+                {
+                    "error": (
+                        "Unsupported image type. "
+                        "Use JPEG, PNG, or WEBP."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if uploaded_file.size > 10 * 1024 * 1024:
+            return Response(
+                {
+                    "error": "Image file is too large. Maximum size is 10 MB."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        start_time = time.perf_counter()
 
         start_time = time.perf_counter()
 
