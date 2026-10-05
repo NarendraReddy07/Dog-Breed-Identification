@@ -5,6 +5,8 @@ from django.test import TestCase
 from PIL import Image
 from rest_framework.test import APIClient
 
+from predictor.models import PredictionLog
+
 
 def create_test_image():
     """
@@ -135,4 +137,120 @@ class PredictAPITest(TestCase):
         self.assertEqual(
             response.status_code,
             400,
+        )
+
+    def test_prediction_history_returns_saved_predictions(self):
+        PredictionLog.objects.create(
+            filename="test-dog.jpg",
+            predicted_breed="golden_retriever",
+            confidence=0.95,
+            latency_ms=1234.56,
+            model_version="tf-ensemble-v1",
+        )
+
+        response = self.client.get(
+            "/api/predictions/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertEqual(
+            response.data["count"],
+            1,
+        )
+
+        self.assertEqual(
+            len(response.data["predictions"]),
+            1,
+        )
+
+        prediction = response.data["predictions"][0]
+
+        self.assertEqual(
+            prediction["filename"],
+            "test-dog.jpg",
+        )
+
+        self.assertEqual(
+            prediction["predicted_breed"],
+            "golden_retriever",
+        )
+
+        self.assertEqual(
+            prediction["model_version"],
+            "tf-ensemble-v1",
+        )
+
+    def test_prediction_analytics_returns_metrics(self):
+        PredictionLog.objects.create(
+            filename="dog-1.jpg",
+            predicted_breed="golden_retriever",
+            confidence=0.90,
+            latency_ms=1000.0,
+            model_version="tf-ensemble-v1",
+        )
+
+        PredictionLog.objects.create(
+            filename="dog-2.jpg",
+            predicted_breed="golden_retriever",
+            confidence=0.80,
+            latency_ms=2000.0,
+            model_version="tf-ensemble-v1",
+        )
+
+        PredictionLog.objects.create(
+            filename="dog-3.jpg",
+            predicted_breed="beagle",
+            confidence=0.70,
+            latency_ms=3000.0,
+            model_version="tf-ensemble-v1",
+        )
+
+        response = self.client.get(
+            "/api/analytics/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertEqual(
+            response.data["total_predictions"],
+            3,
+        )
+
+        self.assertAlmostEqual(
+            response.data["average_confidence"],
+            0.80,
+            places=5,
+        )
+
+        self.assertAlmostEqual(
+            response.data["average_latency_ms"],
+            2000.0,
+            places=5,
+        )
+
+        self.assertEqual(
+            response.data["top_breeds"][0]["predicted_breed"],
+            "golden_retriever",
+        )
+
+        self.assertEqual(
+            response.data["top_breeds"][0]["count"],
+            2,
+        )
+
+        self.assertEqual(
+            response.data["model_versions"][0]["model_version"],
+            "tf-ensemble-v1",
+        )
+
+        self.assertEqual(
+            response.data["model_versions"][0]["count"],
+            3,
         )

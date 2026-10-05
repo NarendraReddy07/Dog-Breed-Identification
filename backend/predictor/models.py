@@ -22,6 +22,22 @@ class PredictionLog(models.Model):
         default="tf-ensemble-v1",
     )
 
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["-timestamp"],
+                name="prediction_time_idx",
+            ),
+            models.Index(
+                fields=["predicted_breed"],
+                name="prediction_breed_idx",
+            ),
+            models.Index(
+                fields=["model_version"],
+                name="prediction_model_idx",
+            ),
+        ]
+
     def __str__(self):
         return (
             f"{self.predicted_breed} "

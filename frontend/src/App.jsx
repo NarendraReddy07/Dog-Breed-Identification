@@ -8,21 +8,28 @@ import {
   AlertCircle,
   Sun,
   Moon,
+  BarChart3,
+  Activity,
+  Clock3,
+  Database,
 } from "lucide-react";
 import "./App.css";
 
 function formatBreedName(breed) {
   return breed
     .split("-")
-    .map((word) =>
-      word.charAt(0).toUpperCase() + word.slice(1)
+    .map(
+      (word) =>
+        word.charAt(0).toUpperCase() + word.slice(1)
     )
     .join(" ");
 }
 
 function App() {
-    const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("dog-breed-theme") === "dark";
+  const [darkMode, setDarkMode] = useState(() => {
+    return (
+      localStorage.getItem("dog-breed-theme") === "dark"
+    );
   });
 
   useEffect(() => {
@@ -39,11 +46,41 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [result, setResult] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] =
+    useState(true);
+  const [analyticsError, setAnalyticsError] =
+    useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const fileInputRef = useRef(null);
+
+  const loadAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      setAnalyticsError("");
+
+      const response = await axios.get(
+        "/api/analytics/"
+      );
+
+      setAnalytics(response.data);
+    } catch (requestError) {
+      console.error(requestError);
+
+      setAnalyticsError(
+        "Analytics are currently unavailable."
+      );
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
 
   const handleFile = (file) => {
     if (!file) {
@@ -103,6 +140,8 @@ function App() {
       );
 
       setResult(response.data);
+
+      await loadAnalytics();
     } catch (requestError) {
       console.error(requestError);
 
@@ -127,30 +166,38 @@ function App() {
     }
   };
 
+  const averageConfidence =
+    (analytics?.average_confidence ?? 0) * 100;
+
+  const averageLatency =
+    (analytics?.average_latency_ms ?? 0) / 1000;
+
   return (
     <div className="app">
       <header className="hero">
-              <button
-        className="theme-toggle"
-        onClick={() => setDarkMode((current) => !current)}
-        aria-label={
-          darkMode
-            ? "Switch to light mode"
-            : "Switch to dark mode"
-        }
-        title={
-          darkMode
-            ? "Switch to light mode"
-            : "Switch to dark mode"
-        }
-      >
-        {darkMode ? (
-          <Sun size={20} />
-        ) : (
-          <Moon size={20} />
-        )}
-      </button>
-      
+        <button
+          className="theme-toggle"
+          onClick={() =>
+            setDarkMode((current) => !current)
+          }
+          aria-label={
+            darkMode
+              ? "Switch to light mode"
+              : "Switch to dark mode"
+          }
+          title={
+            darkMode
+              ? "Switch to light mode"
+              : "Switch to dark mode"
+          }
+        >
+          {darkMode ? (
+            <Sun size={20} />
+          ) : (
+            <Moon size={20} />
+          )}
+        </button>
+
         <div className="hero-badge">
           <Sparkles size={16} />
           TensorFlow + Django + React
@@ -159,8 +206,8 @@ function App() {
         <h1>Dog Breed Identifier</h1>
 
         <p>
-          Upload a dog image and let the AI identify its breed
-          using a 120-class deep learning model.
+          Upload a dog image and let the AI identify its
+          breed using a 120-class deep learning model.
         </p>
       </header>
 
@@ -173,7 +220,9 @@ function App() {
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() =>
+              fileInputRef.current?.click()
+            }
           >
             {previewUrl ? (
               <div className="preview-wrapper">
@@ -185,7 +234,9 @@ function App() {
 
                 <div className="preview-overlay">
                   <ImageIcon size={20} />
-                  <span>Click to choose another image</span>
+                  <span>
+                    Click to choose another image
+                  </span>
                 </div>
               </div>
             ) : (
@@ -222,7 +273,12 @@ function App() {
               <div>
                 <strong>{selectedFile.name}</strong>
                 <span>
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  {(
+                    selectedFile.size /
+                    1024 /
+                    1024
+                  ).toFixed(2)}{" "}
+                  MB
                 </span>
               </div>
             </div>
@@ -257,9 +313,12 @@ function App() {
               <div className="spinner"></div>
 
               <div>
-                <strong>Analyzing image...</strong>
+                <strong>
+                  Analyzing image...
+                </strong>
                 <span>
-                  The AI models are processing your image.
+                  The AI models are processing your
+                  image.
                 </span>
               </div>
             </div>
@@ -268,7 +327,6 @@ function App() {
           {error && (
             <div className="error-box">
               <AlertCircle size={20} />
-
               <span>{error}</span>
             </div>
           )}
@@ -305,7 +363,8 @@ function App() {
 
               <div className="top-confidence">
                 {(
-                  result.top_prediction.confidence * 100
+                  result.top_prediction.confidence *
+                  100
                 ).toFixed(2)}
                 %
               </div>
@@ -381,12 +440,142 @@ function App() {
               <div>
                 <span>Latency</span>
                 <strong>
-                  {(result.latency_ms / 1000).toFixed(2)}s
+                  {(result.latency_ms / 1000).toFixed(
+                    2
+                  )}
+                  s
                 </strong>
               </div>
             </div>
           </section>
         )}
+
+        <section className="analytics-section">
+          <div className="analytics-header">
+            <div>
+              <span className="section-label">
+                Model Analytics
+              </span>
+
+              <h2>Prediction Overview</h2>
+
+              <p>
+                Live metrics calculated from recorded
+                predictions.
+              </p>
+            </div>
+
+            <BarChart3 size={28} />
+          </div>
+
+          {analyticsLoading ? (
+            <div className="analytics-loading">
+              <div className="spinner"></div>
+              <span>
+                Loading analytics...
+              </span>
+            </div>
+          ) : analyticsError ? (
+            <div className="error-box">
+              <AlertCircle size={20} />
+              <span>{analyticsError}</span>
+            </div>
+          ) : (
+            <>
+              <div className="analytics-grid">
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <Database size={20} />
+                  </div>
+
+                  <span>Total Predictions</span>
+
+                  <strong>
+                    {analytics.total_predictions}
+                  </strong>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <Sparkles size={20} />
+                  </div>
+
+                  <span>Average Confidence</span>
+
+                  <strong>
+                    {averageConfidence.toFixed(2)}%
+                  </strong>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <Clock3 size={20} />
+                  </div>
+
+                  <span>Average Latency</span>
+
+                  <strong>
+                    {averageLatency.toFixed(2)}s
+                  </strong>
+                </div>
+
+                <div className="metric-card">
+                  <div className="metric-icon">
+                    <Activity size={20} />
+                  </div>
+
+                  <span>Model Version</span>
+
+                  <strong>
+                    {analytics.model_versions?.[0]
+                      ?.model_version ||
+                      "N/A"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="analytics-breeds">
+                <div className="section-heading">
+                  <h3>Most Predicted Breeds</h3>
+                  <span>Recorded predictions</span>
+                </div>
+
+                {analytics.top_breeds?.length ? (
+                  analytics.top_breeds
+                    .slice(0, 5)
+                    .map((breed, index) => (
+                      <div
+                        className="analytics-breed-row"
+                        key={breed.predicted_breed}
+                      >
+                        <div className="analytics-rank">
+                          {index + 1}
+                        </div>
+
+                        <div className="analytics-breed-name">
+                          {formatBreedName(
+                            breed.predicted_breed
+                          )}
+                        </div>
+
+                        <div className="analytics-count">
+                          {breed.count}{" "}
+                          {breed.count === 1
+                            ? "prediction"
+                            : "predictions"}
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <p className="analytics-empty">
+                    No predictions have been recorded
+                    yet.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </section>
       </main>
 
       <footer>
