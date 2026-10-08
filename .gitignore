@@ -44,6 +44,8 @@ db.sqlite3
 media/
 staticfiles/
 
+# Docker runtime data
+docker-data/
 
 # Node
 node_modules/
