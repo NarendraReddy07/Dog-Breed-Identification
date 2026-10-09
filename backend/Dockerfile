@@ -34,4 +34,4 @@ EXPOSE 8000
 
 # Apply database migrations when the container starts,
 # then launch the Django application.
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 1800 --access-logfile - --error-logfile -"]
