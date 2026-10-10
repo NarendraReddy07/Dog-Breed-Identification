@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dataset import (
+from ml.dataset import (
     NUM_CLASSES,
     build_dataset,
     build_filepaths,
