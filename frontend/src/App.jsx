@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import axios from "axios";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 import {
   Upload,
@@ -70,7 +71,7 @@ function App() {
       setAnalyticsError("");
 
       const response = await axios.get(
-        "/api/analytics/"
+        `${API_BASE_URL}/api/analytics/`
       );
 
       setAnalytics(response.data);
@@ -146,7 +147,7 @@ function App() {
       formData.append("image", selectedFile);
 
       const response = await axios.post(
-        "/api/predict/",
+        `${API_BASE_URL}/api/predict/`,
         formData
       );
 
