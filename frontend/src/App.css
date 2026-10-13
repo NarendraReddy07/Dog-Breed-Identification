@@ -430,9 +430,24 @@
 }
 
 .top-confidence {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  flex-wrap: wrap;
   color: var(--primary);
   font-size: 32px;
   font-weight: 800;
+}
+
+.top-confidence span {
+  font-size: 24px;
+}
+
+.top-confidence small {
+  flex-basis: 100%;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* Top five */

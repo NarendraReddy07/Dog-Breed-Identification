@@ -21,7 +21,7 @@ import "./App.css";
 
 function formatBreedName(breed) {
   return breed
-    .split("-")
+    .split(/[-_]/)
     .map(
       (word) =>
         word.charAt(0).toUpperCase() + word.slice(1)
@@ -49,6 +49,11 @@ function App() {
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  useEffect(() => {
+    if (!previewUrl) return;
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
   const [result, setResult] = useState(null);
 
   const [analytics, setAnalytics] = useState(null);
@@ -95,19 +100,31 @@ function App() {
   }, [loadAnalytics]);
 
   const handleFile = (file) => {
-    if (!file) {
-      return;
-    }
+  if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file.");
-      return;
-    }
+  setError("");
 
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setResult(null);
-    setError("");
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    setError("Please upload a JPG, JPEG, PNG, or WEBP image.");
+    return;
+  }
+
+  const maxSize = 10 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    setError("Image size must be 10 MB or smaller.");
+    return;
+  }
+
+  setSelectedFile(file);
+  setPreviewUrl(URL.createObjectURL(file));
+  setResult(null);
   };
 
   const handleFileInput = (event) => {
@@ -155,13 +172,23 @@ function App() {
 
       await loadAnalytics();
     } catch (requestError) {
-      console.error(requestError);
+      console.error("Prediction request failed:", requestError);
 
-      const message =
+      const serverMessage =
         requestError.response?.data?.error ||
-        "Prediction failed. Make sure the Django backend is running.";
+        requestError.response?.data?.detail;
 
-      setError(message);
+      if (serverMessage) {
+        setError(serverMessage);
+      } else if (!requestError.response) {
+        setError(
+          "Cannot reach the prediction server. Check that the backend is running."
+        );
+      } else {
+        setError(
+          `Prediction failed with HTTP ${requestError.response.status}. Please try again.`
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -272,7 +299,7 @@ function App() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
               onChange={handleFileInput}
               hidden
             />
@@ -325,12 +352,11 @@ function App() {
               <div className="spinner"></div>
 
               <div>
-                <strong>
-                  Analyzing image...
-                </strong>
+                <strong>Analyzing your image...</strong>
                 <span>
-                  The AI models are processing your
-                  image.
+                  Our ensemble model is examining the image.
+                  The first prediction may take a few minutes
+                  while the models initialize.
                 </span>
               </div>
             </div>
@@ -373,12 +399,17 @@ function App() {
                 </h3>
               </div>
 
-              <div className="top-confidence">
+              <div
+                className="top-confidence"
+                aria-label={`Top prediction confidence: ${(
+                  result.top_prediction.confidence * 100
+                ).toFixed(2)} percent`}
+              >
                 {(
-                  result.top_prediction.confidence *
-                  100
+                  result.top_prediction.confidence * 100
                 ).toFixed(2)}
-                %
+                <span>%</span>
+                <small>model confidence</small>
               </div>
             </div>
 
