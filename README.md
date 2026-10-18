@@ -1,205 +1,224 @@
-# Dog Breed Identification
+# Dog Breed Identification AI
 
-A full-stack deep learning application that predicts a dog's breed from an uploaded image. The project combines a React interface, a Django REST API, and TensorFlow/Keras models to return breed predictions and confidence scores.
+A full-stack deep learning application that predicts a dog's breed from an uploaded image. The project combines a React frontend, Django REST API, and TensorFlow/Keras inference pipeline to classify images across 120 dog breeds.
 
 ## Features
 
-- **120-breed classification:** Identifies breeds supported by the trained model.
-- **Image upload:** Select an image from your computer or drag it into the upload area.
-- **Top predictions:** View the leading breed predictions and their confidence scores.
-- **Prediction metadata:** Inspect image dimensions, inference mode, and prediction latency.
-- **Model analytics:** View recorded prediction counts, average confidence, latency, and frequently predicted breeds.
-- **Light and dark themes:** Switch between display themes.
-- **Docker support:** Run the application components in a local containerized environment.
-- **Automated frontend tests:** Test the interface, upload preview, prediction flow, analytics, and error handling.
+- **120-breed classification** with top-five predictions and confidence scores.
+- **Deep learning inference** using ViT-L/32, EfficientNetB3, and InceptionResNetV2 feature extraction with five trained stack classifier heads.
+- **Production configuration** with deterministic inference and temperature calibration.
+- **Image upload interface** with preview, file validation, and prediction status.
+- **Prediction analytics** showing total predictions, average confidence, average latency, model version, and frequently predicted breeds.
+- **REST API** built with Django REST Framework.
+- **Automated tests** for frontend behavior and backend functionality.
+- **Docker support** for the application environment.
 
-## Technology Stack
+## Model Performance
 
-| Component | Technology |
-|---|---|
-| Frontend | React, JavaScript, Vite |
-| UI icons | Lucide React |
-| API communication | Axios |
-| Backend | Python, Django REST Framework |
-| Machine learning | TensorFlow / Keras |
-| Model architecture | Ensemble-based classification |
-| Containerization | Docker |
-| Frontend testing | Vitest, React Testing Library |
-| Source control | Git and GitHub |
+The following metrics are recorded in the model's validation and production configuration files.
+
+| Metric | Result |
+|---|---:|
+| Number of classes | 120 |
+| Validation samples | 1,023 |
+| Top-1 validation accuracy | 94.72% |
+| Top-5 validation accuracy | 99.51% |
+| Calibrated validation log loss | 0.19564 |
+| Production branch | Stack |
+| Temperature | 1.10 |
+
+These are validation results, not guaranteed accuracy on unseen real-world images. Prediction confidence is the model's estimated probability and should not be interpreted as a guarantee of correctness.
 
 ## Architecture
 
 ```text
-User
- |
- v
-React + Vite frontend
- |
- | HTTP requests
- v
-Django REST API
- |
- +----------------------+
- |                      |
- v                      v
-Prediction endpoint     Analytics endpoint
- |
- v
-TensorFlow / Keras inference
- |
- v
-Ranked breed predictions
- |
- v
-Results displayed in the frontend
+React + Vite Frontend
+        |
+        | HTTP requests
+        v
+Django REST Framework API
+        |
+        +---- Image validation and preprocessing
+        |
+        v
+Feature Extraction
+  +----------------------+
+  | ViT-L/32             |
+  | EfficientNetB3       |
+  | InceptionResNetV2    |
+  +----------------------+
+        |
+        v
+Five Stack Classifier Heads
+        |
+        v
+Probability Averaging
+        |
+        v
+Temperature Calibration
+        |
+        v
+Top-5 Breed Predictions
+        |
+        +---- Prediction History
+        |
+        +---- Analytics Dashboard
 ```
 
-## How It Works
+### Technology Stack
 
-1. The user selects a dog image.
-2. The frontend displays a preview and allows the user to request a prediction.
-3. The image is submitted to the Django API as multipart form data.
-4. The backend processes the image using the available trained models.
-5. The API returns the predicted breed, confidence scores, and inference metadata.
-6. The frontend displays the results and refreshes the analytics.
-
-The classifier supports 120 breed classes. Its real-world performance depends on the training data, image quality, and the characteristics of the uploaded image.
+- **Frontend:** React, Vite, JavaScript, CSS
+- **Backend:** Python, Django, Django REST Framework
+- **Machine Learning:** TensorFlow, Keras, KerasHub, NumPy
+- **Image Processing:** Pillow
+- **Testing:** Vitest, React Testing Library, Django tests
+- **Development Tools:** Git, GitHub, Docker, VS Code
 
 ## Project Structure
 
 ```text
 Dog-Breed-Identification/
+├── artifacts/
+│   ├── production_config.json
+│   ├── class_mapping.json
+│   ├── ensemble_calibration.json
+│   ├── validation_metrics.json
+│   └── stack_seed_*.keras
 ├── backend/
+│   ├── config/
+│   ├── predictor/
+│   │   ├── model_manager.py
+│   │   ├── views.py
+│   │   ├── models.py
+│   │   └── tests.py
 │   ├── manage.py
-│   ├── Dockerfile
-│   └── Django API, settings, and model inference code
+│   ├── requirements.txt
+│   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx
 │   │   ├── App.css
-│   │   ├── App.test.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   ├── Dockerfile
+│   │   └── App.test.jsx
 │   ├── package.json
-│   └── vite.config.js
+│   └── Dockerfile
+├── ml/
+│   ├── train.py
+│   ├── evaluate.py
+│   ├── ensemble.py
+│   ├── calibration.py
+│   └── export.py
 ├── docker-compose.yml
 └── README.md
 ```
 
-Some model files, datasets, and generated runtime data may be excluded from version control because of their size or local configuration requirements.
+## Run Locally
 
-## Run the Frontend Locally
+### Prerequisites
 
-### Requirements
-
+- Python and a compatible virtual environment
 - Node.js and npm
-- The project repository cloned to your computer
+- Git
+- Sufficient memory and disk space for the machine learning dependencies and model artifacts
 
-### Setup
-
-Open a terminal in the repository's `frontend` directory:
+### 1. Clone the repository
 
 ```bash
+git clone https://github.com/NarendraReddy07/Dog-Breed-Identification.git
+cd Dog-Breed-Identification
+```
+
+### 2. Start the backend
+
+Activate your Python virtual environment, install the backend dependencies from `backend/requirements.txt` if necessary, and run:
+
+```bash
+cd backend
+python manage.py migrate
+python manage.py runserver
+```
+
+The backend runs at `http://127.0.0.1:8000/` by default.
+
+The model artifacts must be present in the root `artifacts/` directory. The first prediction may take longer while the backbones and classifier heads load.
+
+### 3. Start the frontend
+
+Open a second terminal:
+
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Vite will print the local development URL in the terminal.
+Open the local URL printed by Vite. The default is usually `http://localhost:5173/`, with the repository's configured base path applied where relevant.
 
-### Run the Tests
+Keep the backend and frontend terminals running while using the application.
 
-```bash
-npm test -- --run
-```
-
-### Create a Production Build
-
-```bash
-npm run build
-```
-
-The generated frontend build is written to the `frontend/dist/` directory.
-
-### Run Lint Checks
-
-```bash
-npm run lint
-```
-
-## Backend and API
-
-The frontend communicates with these API routes:
+## API Endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/analytics/` | Retrieves prediction analytics |
-| POST | `/api/predict/` | Submits an image for breed classification |
+| POST | `/api/predict/` | Predict the breed from an uploaded image |
+| GET | `/api/analytics/` | Retrieve prediction analytics |
+| GET | `/api/history/` | Retrieve recent prediction history |
 
-The prediction request uses multipart form data with the image field named `image`.
+The prediction endpoint expects an image uploaded using the multipart form field `image`. Supported formats are JPEG, PNG, and WEBP, with a maximum upload size of 10 MB.
 
-For local integration, start the Django backend using the configuration and dependencies included in the repository. If the API is hosted at a different address, configure the frontend's `VITE_API_BASE_URL` environment variable accordingly.
+## Testing
 
-The backend must be running for real predictions and live analytics. Frontend tests use mocked API responses and do not require model inference.
+### Frontend
 
-## Dataset and Model Files
-
-The project uses a dog-breed dataset for training and evaluation. Dataset files and trained model weights are not included in the Git repository.
-
-Check the repository's existing data and model setup instructions before running training or inference on a fresh machine. Do not commit large datasets, model weights, local databases, secrets, or environment files accidentally.
-
-## Testing and Verification
-
-The frontend currently contains **12 automated tests** covering:
-
-- Application title and upload interface rendering.
-- Theme toggle and analytics display.
-- Analytics API error handling.
-- Image upload and preview rendering.
-- Rejection of unsupported file types.
-- Rejection of images larger than 10 MB.
-- Display of predictions returned by the API.
-- Resetting the selected image and prediction.
-- Prediction API failure handling and loading-state cleanup.
-- Keyboard accessibility for opening the image picker.
-
-Run the frontend tests from the `frontend` directory:
+Run from the `frontend` directory:
 
 ```bash
 npm test -- --run
-```
-
-Run the linter:
-
-```bash
 npm run lint
-```
-
-Build the production frontend:
-
-```bash
 npm run build
 ```
 
-The current frontend verification results are 12 passing tests, zero lint warnings or errors, and a successful Vite production build.
+Verified results:
 
-These checks validate the tested frontend behavior. They do not, by themselves, establish model accuracy on unseen data or guarantee that a remote backend is available.
+- 12 frontend tests passed.
+- Lint completed with zero warnings and zero errors.
+- The Vite production build completed successfully.
 
-## Current Limitations
+### Backend
 
-- Live predictions require a reachable Django backend with the required model files and dependencies.
-- Prediction latency depends on the available hardware and model initialization.
-- Confidence scores represent the model's output and should not be interpreted as a guarantee of correctness.
-- Public hosting and remote backend deployment are not included in the current project scope.
+Run from the `backend` directory:
+
+```bash
+python manage.py test
+```
+
+Verified result: six Django tests passed, with no failures.
+
+These results describe the tested local code at the time of verification.
+
+## Model Artifacts and Data
+
+The production configuration identifies the selected inference branch as `stack`, with a stack weight of `1.0`, a temperature of `1.1`, an input image size of 384 × 384, and 120 output classes.
+
+The production package includes five stack classifier heads, the class mapping, calibration configuration, production configuration, and validation metrics.
+
+Dataset files and trained model weights may be excluded from version control because of their size. Follow the project's data and artifact setup requirements when preparing a fresh environment. Do not commit secrets, environment files, local databases, or large data files unintentionally.
+
+## Limitations
+
+- The model predicts among the 120 supported classes; it is not a general-purpose animal identification system.
+- Validation accuracy does not guarantee correct predictions for every image.
+- Confidence scores may be high even when a prediction is incorrect.
+- CPU inference can be slower than inference on supported GPU hardware.
+- The analytics dashboard summarizes predictions recorded by the local backend database.
+- The project is currently verified for local use. Public deployment is not part of the current setup.
 
 ## Future Improvements
 
-- Expand automated backend and API integration tests.
-- Improve accessibility and keyboard navigation.
-- Add reproducible model evaluation reports.
-- Improve inference efficiency and monitoring.
-- Add example screenshots and measured evaluation metrics.
+- Add a broader labeled-image evaluation suite.
+- Expand API integration and failure-path testing.
+- Improve inference throughput where needed.
+- Add a public demo when a suitable hosting option is available.
 
 ## License
 
-Add a license file if you intend to distribute the project under a specific open-source license.
+Add a license file before distributing the project under an explicit open-source license.
