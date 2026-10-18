@@ -1,18 +1,17 @@
-
 # Dog Breed Identification
 
 A full-stack deep learning application that predicts a dog's breed from an uploaded image. The project combines a React interface, a Django REST API, and TensorFlow/Keras models to return breed predictions and confidence scores.
 
 ## Features
 
-- **120-breed classification:** identifies breeds supported by the trained model.
-- **Image upload:** select an image from your computer or drag it into the upload area.
-- **Top predictions:** view the leading breed predictions and their confidence scores.
-- **Prediction metadata:** inspect image dimensions, inference mode, and prediction latency.
-- **Model analytics:** view recorded prediction counts, average confidence, latency, and frequently predicted breeds.
-- **Light and dark themes:** switch between display themes.
-- **Docker support:** run the application components in a local containerized environment.
-- **Automated frontend tests:** test the interface, upload preview, prediction flow, analytics, and error handling.
+- **120-breed classification:** Identifies breeds supported by the trained model.
+- **Image upload:** Select an image from your computer or drag it into the upload area.
+- **Top predictions:** View the leading breed predictions and their confidence scores.
+- **Prediction metadata:** Inspect image dimensions, inference mode, and prediction latency.
+- **Model analytics:** View recorded prediction counts, average confidence, latency, and frequently predicted breeds.
+- **Light and dark themes:** Switch between display themes.
+- **Docker support:** Run the application components in a local containerized environment.
+- **Automated frontend tests:** Test the interface, upload preview, prediction flow, analytics, and error handling.
 
 ## Technology Stack
 
@@ -70,6 +69,10 @@ The classifier supports 120 breed classes. Its real-world performance depends on
 
 ```text
 Dog-Breed-Identification/
+├── backend/
+│   ├── manage.py
+│   ├── Dockerfile
+│   └── Django API, settings, and model inference code
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx
@@ -77,12 +80,10 @@ Dog-Breed-Identification/
 │   │   ├── App.test.jsx
 │   │   ├── index.css
 │   │   └── main.jsx
+│   ├── Dockerfile
 │   ├── package.json
 │   └── vite.config.js
-├── backend/
-│   └── Django API and model inference code
 ├── docker-compose.yml
-├── Dockerfile
 └── README.md
 ```
 
@@ -120,6 +121,12 @@ npm run build
 
 The generated frontend build is written to the `frontend/dist/` directory.
 
+### Run Lint Checks
+
+```bash
+npm run lint
+```
+
 ## Backend and API
 
 The frontend communicates with these API routes:
@@ -137,18 +144,46 @@ The backend must be running for real predictions and live analytics. Frontend te
 
 ## Dataset and Model Files
 
-The project uses a dog-breed dataset for training and evaluation. Dataset files and trained model weights not included in the Git repository.
+The project uses a dog-breed dataset for training and evaluation. Dataset files and trained model weights are not included in the Git repository.
 
 Check the repository's existing data and model setup instructions before running training or inference on a fresh machine. Do not commit large datasets, model weights, local databases, secrets, or environment files accidentally.
 
 ## Testing and Verification
 
-The frontend has been verified with:
+The frontend currently contains **12 automated tests** covering:
 
-- Seven passing automated tests.
-- A successful Vite production build.
+- Application title and upload interface rendering.
+- Theme toggle and analytics display.
+- Analytics API error handling.
+- Image upload and preview rendering.
+- Rejection of unsupported file types.
+- Rejection of images larger than 10 MB.
+- Display of predictions returned by the API.
+- Resetting the selected image and prediction.
+- Prediction API failure handling and loading-state cleanup.
+- Keyboard accessibility for opening the image picker.
 
-These checks validate the frontend's tested behavior. They do not, by themselves, establish model accuracy on unseen data or guarantee that a remote backend is available.
+Run the frontend tests from the `frontend` directory:
+
+```bash
+npm test -- --run
+```
+
+Run the linter:
+
+```bash
+npm run lint
+```
+
+Build the production frontend:
+
+```bash
+npm run build
+```
+
+The current frontend verification results are 12 passing tests, zero lint warnings or errors, and a successful Vite production build.
+
+These checks validate the tested frontend behavior. They do not, by themselves, establish model accuracy on unseen data or guarantee that a remote backend is available.
 
 ## Current Limitations
 

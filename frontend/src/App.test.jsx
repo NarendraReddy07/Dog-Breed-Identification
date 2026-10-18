@@ -190,6 +190,74 @@ describe("Dog Breed Identifier", () => {
     ).toBeEnabled();
   });
 
+  it("rejects unsupported file types", async () => {
+    const { container } = render(<App />);
+
+    const file = new File(
+      ["not an image"],
+      "document.pdf",
+      { type: "application/pdf" }
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]'
+    );
+
+    fireEvent.change(fileInput, {
+      target: { files: [file] },
+    });
+
+    expect(
+      await screen.findByText(
+        "Please upload a JPG, JPEG, PNG, or WEBP image."
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByAltText("Selected dog")
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", {
+        name: /predict breed/i,
+      })
+    ).toBeDisabled();
+  });
+
+  it("rejects images larger than 10 MB", async () => {
+    const { container } = render(<App />);
+
+    const oversizedFile = new File(
+      [new Uint8Array(10 * 1024 * 1024 + 1)],
+      "large-dog.jpg",
+      { type: "image/jpeg" }
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]'
+    );
+
+    fireEvent.change(fileInput, {
+      target: { files: [oversizedFile] },
+    });
+
+    expect(
+      await screen.findByText(
+        "Image size must be 10 MB or smaller."
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.queryByAltText("Selected dog")
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", {
+        name: /predict breed/i,
+      })
+    ).toBeDisabled();
+  });
+
   it("displays the prediction returned by the API", async () => {
     axios.post.mockResolvedValueOnce({
       data: {
@@ -229,8 +297,6 @@ describe("Dog Breed Identifier", () => {
       'input[type="file"]'
     );
 
-    expect(fileInput).not.toBeNull();
-
     fireEvent.change(fileInput, {
       target: { files: [file] },
     });
@@ -266,6 +332,128 @@ describe("Dog Breed Identifier", () => {
       "/api/predict/",
       expect.any(FormData)
     );
+  });
+
+  it("clears the selected image and prediction when reset is clicked", async () => {
+    axios.post.mockResolvedValueOnce({
+      data: {
+        top_prediction: {
+          breed: "golden_retriever",
+          confidence: 0.985,
+        },
+        predictions: [
+          {
+            breed: "golden_retriever",
+            confidence: 0.985,
+          },
+        ],
+        model_version: "tf-ensemble-v1",
+        image: {
+          width: 224,
+          height: 224,
+        },
+        deterministic_inference: true,
+        latency_ms: 2500,
+      },
+    });
+
+    const { container } = render(<App />);
+
+    const file = new File(
+      ["fake image"],
+      "dog.jpg",
+      { type: "image/jpeg" }
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]'
+    );
+
+    fireEvent.change(fileInput, {
+      target: { files: [file] },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /predict breed/i,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "We found a match",
+      })
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /reset/i,
+      })
+    );
+
+    expect(
+      screen.queryByAltText("Selected dog")
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("heading", {
+        name: "We found a match",
+      })
+    ).not.toBeInTheDocument();
+
+    expect(fileInput.value).toBe("");
+
+    expect(
+      screen.getByRole("button", {
+        name: /predict breed/i,
+      })
+    ).toBeDisabled();
+  });
+
+  it("shows an error when prediction fails and clears the loading state", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    axios.post.mockRejectedValueOnce(
+      new Error("Network error")
+    );
+
+    const { container } = render(<App />);
+
+    const file = new File(
+      ["fake image"],
+      "dog.jpg",
+      { type: "image/jpeg" }
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]'
+    );
+
+    fireEvent.change(fileInput, {
+      target: { files: [file] },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: /predict breed/i,
+      })
+    );
+
+    expect(
+      await screen.findByText(
+        "Cannot reach the prediction server. Check that the backend is running."
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", {
+        name: /predict breed/i,
+      })
+    ).toBeEnabled();
+
+    consoleError.mockRestore();
   });
 
   it("opens the image picker when the upload area receives Enter", () => {
