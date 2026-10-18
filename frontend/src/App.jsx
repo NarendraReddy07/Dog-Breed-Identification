@@ -256,12 +256,22 @@ function App() {
             className={`drop-zone ${
               isDragging ? "dragging" : ""
             } ${previewUrl ? "has-preview" : ""}`}
+            role="button"
+            tabIndex={0}
+            aria-label="Choose a dog image"
+            onKeyDown={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                (event.key === "Enter" || event.key === " ")
+              ) {
+                event.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() =>
-              fileInputRef.current?.click()
-            }
+            onClick={() => fileInputRef.current?.click()}
           >
             {previewUrl ? (
               <div className="preview-wrapper">
